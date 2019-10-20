@@ -22,7 +22,9 @@ Meanwhile, a new version of MarioAI (0.8) has recently (in 2019) appeared at [ma
 
 ## Building the game
 
-This version of MarioAI is compatible with Java 11 and probably older Java versions as well.  It includes Gradle build files, as well as .project files for Eclipse.  You should easily be able to load it into Eclipse, Visual Studio Code, or other modern Java IDEs.
+This version of MarioAI works with Java 11, 12, or 13, and probably older Java versions as well.
+
+The sources include .project files for Eclipse.  You should easily be able to load them into Eclipse, IntelliJ, or Visual Studio Code, all of which understand the Eclipse .project file format.
 
 ## Playing the game
 
@@ -40,15 +42,17 @@ You will see three kinds of enemies:
 
 - [Koopas](https://en.wikipedia.org/wiki/Koopa_Troopa) look like green turtles.  If you shoot a Koopa, it will die.  If you step on one, it will retreat inside its shell.  You can then step on the shell again or kick it to set it in motion.  A moving shell will destroy any enemy that it hits, even a Spiky.  However, beware: a moving shell will also harm you if it hits you.
 
+  If you hold down the S key and move onto a stopped shell, you will pick it up.  You can then carry the shell anywhere you like.  When you are carrying the shell, Mario looks like a raccoon.  Let go of the S key to release the shell and set it in motion again.
+
 - [Spikies](https://www.mariowiki.com/Spiny) (also known as "spinies") are covered with spikes.  You cannot shoot a Spiky, and stepping on one will harm you.  The only way to kill a Spiky is to hit it with a moving Koopa shell.
 
 You (Mario) are always in one of three states:
 
-- Tall, with a yellow hat.  This is the strongest state: only in this state can you shoot bullets.  You begin in this state.
+- Fire Mario: Tall, with a yellow hat.  This is the strongest state: only in this state can you shoot bullets.  You begin in this state.
 
-- Tall, with a red hat.
+- Super Mario: Tall, with a red hat.
 
-- Short.  This is the weakest state.
+- Small Mario: Short.  This is the weakest state.
 
 Each time that you take damage by hitting a monster, you move to the next weaker state.  If you are in the short state and hit a monster, you die and the game is over.
 
@@ -96,19 +100,60 @@ Your current score is displayed at the bottom of the screen.  You gain or lose p
 
 ## Agent API
 
-Here is the [reference documentation](https://ksvi.mff.cuni.cz/~dingle/2019/ai/mario/html/index.html) for the API you can use to build agents to play the game.
+Here is the [documentation](https://ksvi.mff.cuni.cz/~dingle/2019/ai/mario/html/index.html) for the API you can use to build agents to play the game.
 
-I recommend starting at the [MarioAgent](https://ksvi.mff.cuni.cz/~dingle/2019/ai/mario/html/mario/MarioAgent.html) class.  This is the class you will enhance to build your custom agent.  You will need to implement the [actionSelectionAI](https://ksvi.mff.cuni.cz/~dingle/2019/ai/mario/html/mario/MarioAgent.html#actionSelectionAI()) method to determine the action that Mario will take on each game tick.
+The Mario world consists of __tiles__, each of which is 16 x 16 pixels.  By default, the world is 256 tiles wide and 15 tiles high.  So it consists of 4096 x 240 pixels.
 
-As you can see in the documentation, [MarioAgent](https://ksvi.mff.cuni.cz/~dingle/2019/ai/mario/html/mario/MarioAgent.html) inherits from [MarioHijackAIBase](https://ksvi.mff.cuni.cz/~dingle/2019/ai/mario/html/ch/idsia/agents/controllers/MarioHijackAIBase.html), which in turn inherits from [MarioAIBase](https://ksvi.mff.cuni.cz/~dingle/2019/ai/mario/html/ch/idsia/agents/controllers/MarioAIBase.html).  This last class contains fields that provide essential information about the game state:
+All terrain is aligned on tile boundaries.  Using the API, you can determine the terrain in each tile around Mario, represented by the
+[Tile](https://ksvi.mff.cuni.cz/~dingle/2019/ai/mario/html/ch/idsia/benchmark/mario/engine/generalization/Tile.html) enum.  The most common tile types are
 
-- The field __e__ is an [Entities](https://ksvi.mff.cuni.cz/~dingle/2019/ai/mario/html/ch/idsia/agents/controllers/modules/Entities.html) object with information about __entities__ (e.g. enemies, flowers, mushrooms) around Mario.
+- BORDER_CANNOT_PASS_THROUGH (BI) - a solid block
+- BORDER_HILL (BH) - a platform that Mario can stand on
+- BREAKABLE_BRICK (BB) - a breakable brick
+- COIN_ANIM (C) - a coin that Mario can collect
+- FLOWER_POT (FP) - a tube that a piranha plant might emerge from
+- QUESTION_BRICK (BQ) - a brick with a question mark
 
-- The field __t__ is a [Tiles](https://ksvi.mff.cuni.cz/~dingle/2019/ai/mario/html/ch/idsia/agents/controllers/modules/Tiles.html) object with information about __tiles__ (e.g. bricks, coins, walls) around Mario.
+The two-letter abbreviations above appear if you enable the tile grid (see "Extra keyboard controls", below).
 
-- The field __mario__ is a [MarioEntity](https://ksvi.mff.cuni.cz/~dingle/2019/ai/mario/html/ch/idsia/benchmark/mario/engine/generalization/MarioEntity.html) object with information about Mario himself (e.g. his precise X/Y position).
+In the API, an __entity__ is anything that moves, such as the enemy monsters.  Mario can see the entities around him, each of which has an [EntityType](https://ksvi.mff.cuni.cz/~dingle/2019/ai/mario/html/ch/idsia/benchmark/mario/engine/generalization/EntityType.html).  The most common entity types are
 
-This documentation is still somewhat primitive, but I will try to improve it over time.  In the meantime, if you have questions then just [ask](mailto:dingle@ksvi.mff.cuni.cz).
+- GOOMBA (G) - a [Goomba](https://en.wikipedia.org/wiki/Goomba)
+- GREEN_KOOPA (GK) - a [Koopa](https://en.wikipedia.org/wiki/Koopa_Troopa)
+- MARIO (M) - Mario himself
+- SHELL_MOVING (SM) - a Koopa shell in motion
+- SHELL_STILL (ST) - a Koopa shell that is stopped
+- SPIKY (SP) - a [Spiky](https://www.mariowiki.com/Spiny)
+
+The two-letter abbrevations above appear if you enable the entity grid (as described below).
+
+Mario can see all tiles and entities around him that are contained in the __receptive grid__, which is a 19 x 19 grid of tiles centered at Mario's current position.
+
+The API uses two coordinate systems: __pixel coordinates__ and __tile coordinates__.  In both systems, (0, 0) is the upper left-hand corner of the world.  For any entity that Mario can see, you can retrieve its absolute (X, Y) position in pixels.  More precisely, this is the position at the __horizontal center__ of the __bottom__ of the entity.  An entity with position (X, Y) is considered to belong to the tile with coordinates (X / 16, Y / 16).
+
+In your agent, you could only consider each entity's tile coordinates, or you may want to consider its pixel coordinates for a finer degree of control.
+
+[MarioAgent](https://ksvi.mff.cuni.cz/~dingle/2019/ai/mario/html/MarioAgent.html)  is the class you will enhance to build your custom agent.  You will need to implement the [actionSelectionAI](https://ksvi.mff.cuni.cz/~dingle/2019/ai/mario/html/MarioAgent.html#actionSelectionAI()) method to determine the action that Mario will take on each game tick.
+
+As you can see in the documentation, [MarioAgent](https://ksvi.mff.cuni.cz/~dingle/2019/ai/mario/html/MarioAgent.html) inherits from [MarioHijackAIBase](https://ksvi.mff.cuni.cz/~dingle/2019/ai/mario/html/ch/idsia/agents/controllers/MarioHijackAIBase.html), which in turn inherits from [MarioAIBase](https://ksvi.mff.cuni.cz/~dingle/2019/ai/mario/html/ch/idsia/agents/controllers/MarioAIBase.html).  This last class contains fields that provide essential information about the game state:
+
+- The field __mario__ is a [MarioEntity](https://ksvi.mff.cuni.cz/~dingle/2019/ai/mario/html/ch/idsia/benchmark/mario/engine/generalization/MarioEntity.html) object with information about Mario himself, such as
+
+  - mode - current mode (Small Mario, Super Mario or File Mario)
+  - speed.x, speed.y - current velocity in pixels/tick
+  - sprite.x, sprite.y - absolute position in pixel coordinates
+
+- The field __t__ is a [Tiles](https://ksvi.mff.cuni.cz/~dingle/2019/ai/mario/html/ch/idsia/agents/controllers/modules/Tiles.html) object with information about tiles around Mario.  Each tile is represented by a [Tile](https://ksvi.mff.cuni.cz/~dingle/2019/ai/mario/html/ch/idsia/benchmark/mario/engine/generalization/Tile.html) indicating its type.
+
+- The field __e__ is an [Entities](https://ksvi.mff.cuni.cz/~dingle/2019/ai/mario/html/ch/idsia/agents/controllers/modules/Entities.html) object with information about entities around Mario.  Each of these is represented by an [Entity](https://ksvi.mff.cuni.cz/~dingle/2019/ai/mario/html/ch/idsia/benchmark/mario/engine/generalization/Entity.html) object, which contains the following useful fields (among others):
+
+  - dX, dY - position relative to Mario, in pixels
+  - dTX, dTY - position relative to Mario, in tiles
+  - speed.x, speed.y - current velocity in pixels/tick
+  - sprite.x, sprite.y - absolute position in pixel coordinates
+  - type - an [EntityType](https://ksvi.mff.cuni.cz/~dingle/2019/ai/mario/html/ch/idsia/benchmark/mario/engine/generalization/EntityType.html)
+
+For more details, see the [API documentation](https://ksvi.mff.cuni.cz/~dingle/2019/ai/mario/html/index.html).  It is still somewhat primitive, but I will try to improve it over time.  In the meantime, if you have questions then just [ask](mailto:dingle@ksvi.mff.cuni.cz).
 
 ## Extra keyboard controls 
 
@@ -131,6 +176,61 @@ Here are some extra keyboard controls that allows you to visualize / perform ext
 - __F__: Mario will start flying; good for quickly moving forward through the map
 - __Z__: Toggle scale x2 of the visualization (scale x2 is broken on some systems, dunno why)
 - __+__ / __-__: adjust simulator frames per second
+
+## Physics of the game world
+
+Here is some detailed information about how Mario and creatures move in the game world.
+
+The game proceeds in a series of __ticks__.  By default, it runs at 24 ticks per second.
+
+All enemies move at a constant horizontal velocity of __1.75 pixels/tick__.
+
+Mario accelerates and decelerates as he moves left and right.  If you hold down the left or right arrow key, Mario's horizontal velocity increases until it reaches a maxmimum of __5.5 pixels/tick__.  If you additionally hold down the S (sprint) key, Mario will accelerate more quickly, and will reach a maximum velocity of __10.9 pixels/tick__.
+
+You can accelerate leftward or rightward even in mid-air!  This means that while jumping you have some control over where you will land.  Of course, mid-air horizontal acceleration is not realistic, but this is a video game world.  :)
+
+The height and duration of a jump depends on how long you hold down the A key.  If you tap the A key for the shortest possible jump, your jump will last __10 ticks__ and will reach a maximum height of __26.1 pixels__.  If you hold down the A key for the longest possible jump, your jump will last __17 ticks__ and will reach a maximum height of __66.5 pixels__.  Jumps of intermediate length are also possible.
+
+If you are moving at a constant horizontal speed, the horizontal span of the jump is the jump duration times the velocity.  For example, if you are running at 5.5 pixels/second to the right and make the smallest possible jump, you will travel 10 * 5.5 = 55 pixels horizontally.  If you are sprinting at 10.9 pixels/second and make the largest possible jump, you will travel 17 * 10.9 = 185.3 pixels horizontally, a much greater distance.
+
+For more detail, here is pseudocode explaining how Mario's position and velocity are updated on each tick:
+
+```java
+float x, y;    // absolute position in pixel coordinates
+float xa = 0, ya = 0;  // current velocity in pixels/tick
+int jumpTime = 0;
+
+move() {
+  if (key.isPressed(JUMP)) {
+    if (onGround && mayJump) {
+      jumpTime = 7;    // begin jumping
+      ya = -1.9 * jumpTime;
+    } else if (jumpTime > 0) {
+      ya = -1.9 * jumpTime;
+      jumpTime--;
+    }
+  }
+    
+  // Accelerate left or right
+  float sideWaysSpeed = keys.isPressed(SPRINT) ? 1.2 : 0.6;
+  if (key.isPressed(LEFT))
+    xa -= sidewaysSpeed;
+  if (key.isPressed(RIGHT))
+    xa += sidewaysSpeed;
+  
+  // Update position based on current velocity
+  x += xa;
+  y += ya;
+  
+  // Damp velocity due to friction
+  xa *= 0.89;
+  ya *= 0.85;
+  
+  // Gravitational acceleration
+  if (!onGround)
+    ya += 3.0;
+}
+```
 
 ## Changelog
 

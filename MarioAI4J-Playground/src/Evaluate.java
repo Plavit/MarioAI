@@ -1,5 +1,3 @@
-package mario;
-
 import java.util.HashMap;
 import java.util.Map;
 import ch.idsia.utils.MarioLog;
@@ -27,33 +25,37 @@ public class Evaluate {
 	 */
 	public static final int MAP_REPETITIONS = 1;
 	
-	private static String[] getEvaluationOptions(int seed, String levelOptions) {
+	private static String[] getEvaluationOptions(int seed, String levelOptions, boolean saveResults) {
 		return new String[] {
 				  "-s", String.valueOf(seed) // "seed"
 				, "-o", levelOptions
 				, "-c", String.valueOf(MAPS_COUNT)  // level-count
 				, "-r", String.valueOf(MAP_REPETITIONS)  // one-run-repetitions
-				, "-a", "mario.MarioAgent"
+				, "-a", "MarioAgent"
 				, "-i", "MarioAI"   // agent-id
-				, "-d", "./results" // result-dir"	
+				, "-d", saveResults ? "./results" : null // result-dir"	
 		};
 	}
 	
-	private static String[] getEvaluationOptions(int seed, LevelConfig level) {
-		return getEvaluationOptions(seed, level.getOptionsVisualizationOff());		
+	private static String[] getEvaluationOptions(int seed, LevelConfig level, boolean saveResults) {
+		return getEvaluationOptions(seed, level.getOptionsVisualizationOff(), saveResults);		
 	}
 	
-	public static MarioRunResults evaluateLevel(int seed, LevelConfig level) {
+	public static MarioRunResults evaluateLevel(int seed, LevelConfig level, boolean saveResults) {
 		MarioLog.info("EVALUATING " + level.name());
-		MarioLog.info("EVALUATING " + level.getOptions());
+		MarioLog.fine("EVALUATING " + level.getOptions());
 		
-		MarioRunResults results = EvaluateAgentConsole.evaluate(getEvaluationOptions(seed, level));
+		MarioRunResults results = EvaluateAgentConsole.evaluate(getEvaluationOptions(seed, level, saveResults));
 		
 		printResults(level, results);
 		
 		return results;
 	}
 	
+	public static MarioRunResults evaluateLevel(int seed, LevelConfig level) {
+		return evaluateLevel(seed, level, true);
+	}
+		
 	public static void printResults(LevelConfig level, MarioRunResults results) {
 		MarioLog.info(level.name());
 		MarioLog.info("  +-- VICTORIES:  " + results.totalVictories + " / " + results.getTotalRuns() + " (" + (100 * (double)results.totalVictories / (double)results.getTotalRuns()) + "%)");

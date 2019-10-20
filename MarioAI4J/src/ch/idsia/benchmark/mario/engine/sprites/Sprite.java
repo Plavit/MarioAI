@@ -44,7 +44,6 @@ public class Sprite {
 	public static final int KIND_BULLET_BILL = 84;
 	public static final int KIND_SPIKY = 93;
 	public static final int KIND_SPIKY_WINGED = 99;
-	// public static final int KIND_ENEMY_FLOWER = 11;
 	public static final int KIND_ENEMY_FLOWER = 91;
 	public static final int KIND_WAVE_GOOMBA = 98; // TODO: !H!: same
 	public static final int KIND_SHELL = 13;
@@ -67,21 +66,16 @@ public class Sprite {
 
 	public float xOld, yOld;
 	
-	/**
-	 * Pixel-perfect position of the sprite within the MAP:
-	 * x / 16 == map tile x-coordinate
-	 * y / 16 == map tile y-coordinate
-	 */
-	public float x, y;
+	/** Absolute X-position of the sprite's horizontal center, in pixel coordinates. */
+	public float x;
 	
-	/**
-	 * These are magical and mysterious, do not interpret in your AI.
-	 */
+	/** Absolute Y-position of the bottom of the sprite, in pixel coordinates. */
+	public float y;
+	
 	public float xa, ya;
 
 	/**
-	 * Position of the tile the sprite is within the map.
-	 * Sprites are 16x16 long, mapX = x / 16, mapY = y / 16...
+	 * Absolute position in tile coordinates (each tile is 16 x 16 pixels).
 	 * See {@link Sprite#tick()}.
 	 */
 	public int mapX, mapY;
